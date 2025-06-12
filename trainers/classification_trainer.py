@@ -27,7 +27,7 @@ class ClassifcationTrainer:
         ]
         for metric in self.metrics:
             metric.to(device)
-
+        self.scaler = torch.amp.GradScaler(device=device)
 
     def fit(self, num_epochs, train_db: ClassificationDataset, val_db: ClassificationDataset, batch_size, early_stop_patience=30, checkpoint_path=f'checkpoints/model.pt'):
         train_loader = DataLoader(train_db, batch_size=batch_size, shuffle=True, num_workers=os.cpu_count())
@@ -68,12 +68,16 @@ class ClassifcationTrainer:
             images = images.to(self.device)
             labels = labels.to(self.device)
             self.optim.zero_grad()
-
-            outputs = self.model(images)
-            loss = self.loss_fn(outputs, labels)
+            
+            with torch.autocast(self.device):
+                outputs = self.model(images)
+                loss = self.loss_fn(outputs, labels)
             losses.append(loss.item())
-            loss.backward()
-            self.optim.step()
+            self.scaler.scale(loss).backward()
+            self.scaler.unscale_(self.optim)
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+            self.scaler.step(self.optim)
+            self.scaler.update()
 
         print(f'Train Loss: {np.mean(losses):0.4f}')
         return np.mean(losses)
