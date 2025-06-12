@@ -22,5 +22,6 @@ class PatchEmbedding(nn.Module):
         return x.transpose(1, 2)
 
 
-model = PatchEmbedding(3, 128, 16).to('cuda')
-summary(model, input_size=[5, 3, 256, 256])
+if __name__ == '__main__':
+    model = PatchEmbedding(3, 128, 16).to('cuda')
+    summary(model, input_size=[5, 3, 256, 256])
