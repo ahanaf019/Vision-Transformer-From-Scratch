@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchinfo import summary
 
-from modules.multihead_attention import MultiHeadAttention
+from models.modules.multihead_attention import MultiHeadAttention
 
 class TransformerEncoder(nn.Module):
     def __init__(

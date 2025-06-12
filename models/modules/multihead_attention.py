@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchinfo import summary
 
-from modules.attention import Attention
+from models.modules.attention import Attention
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, num_heads):

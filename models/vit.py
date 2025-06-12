@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchinfo import summary
 
-from modules.patch_embedding import PatchEmbedding
-from modules.positional_embedding import PositionalEmbedding
-from modules.transformer_encoder import TransformerEncoder
+from models.modules.patch_embedding import PatchEmbedding
+from models.modules.positional_embedding import PositionalEmbedding
+from models.modules.transformer_encoder import TransformerEncoder
 
 class ViT(nn.Module):
     def __init__(
@@ -40,7 +40,6 @@ class ViT(nn.Module):
             torch.zeros(size=[1, d_model])
         )
         nn.init.trunc_normal_(self.cls_token, std=0.02)
-        # print(self.cls_token.shape)
 
         sequence_len = (image_size // patch_size) ** 2
         self.positional_embedding = PositionalEmbedding(
@@ -64,19 +63,18 @@ class ViT(nn.Module):
         x = torch.cat([self.cls_token.expand(x.size(0), -1, -1), x], dim=1)
         x = self.positional_embedding(x)
         x = self.encoder(x)
-        
-        return x
+        return self.classifier(x[:, 0, :])
 
 
-model = ViT(
-    in_channels=3,
-    d_model=768,
-    image_size=384,
-    patch_size=16,
-    num_heads=12,
-    num_layers=12,
-    dropout_rate=0.1,
-    mlp_dim=3072,
-    num_classes=1000
-).to('cuda')
-summary(model, input_size=[5, 3, 256, 256])
+# model = ViT(
+#     in_channels=3,
+#     d_model=768,
+#     image_size=384,
+#     patch_size=16,
+#     num_heads=12,
+#     num_layers=12,
+#     dropout_rate=0.1,
+#     mlp_dim=3072,
+#     num_classes=1000
+# ).to('cuda')
+# summary(model, input_size=[5, 3, 256, 256])
