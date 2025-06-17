@@ -45,7 +45,7 @@ class ShiftedPatchTokenization(nn.Module):
     def __shift_image(self, image, shift_x, shift_y):
         B, C, H, W = image.size()
         shift_x = shift_x * 2 / W
-        shift_y = shift_x * 2 / H
+        shift_y = shift_y * 2 / H
         theta = torch.tensor(
             [[[1, 0, shift_x],
               [0, 1, shift_y]]] * B,

@@ -13,14 +13,13 @@ class LocalityAttention(nn.Module):
         self.query_dim = query_dim
         self.value_dim = value_dim
 
-        self.query = nn.Linear(query_dim, attention_dim)
-        self.key = nn.Linear(key_dim, attention_dim)
-        self.value = nn.Linear(value_dim, attention_dim)
+        self.query = nn.Linear(attention_dim, query_dim)
+        self.key = nn.Linear(attention_dim, key_dim)
+        self.value = nn.Linear(attention_dim, value_dim)
 
         self.temperature = nn.Parameter(
             torch.tensor(1.0)
         )
-        nn.init.trunc_normal_(self.temperature, std=1)
 
     
 
@@ -37,7 +36,7 @@ class LocalityAttention(nn.Module):
         # Diagonal Masking
         mask = torch.eye(x.shape[-1], device=x.device, dtype=torch.bool)
         mask = mask.expand(x.shape[0], -1, -1)
-        x.masked_fill_(mask, value=-torch.inf)
+        x.masked_fill_(mask, value=-1e4)
         return torch.matmul(F.softmax(x, dim=-1), V)
 
 

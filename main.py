@@ -17,6 +17,7 @@ from utils.utils import get_images_and_labels, load_state, set_freeze_root_child
 from datasets import ClassificationDataset
 from trainers import ClassifcationTrainer
 from models.vit import ViT
+from models.sl_vit import SL_ViT
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -37,13 +38,14 @@ _transforms = transforms.Compose([
 
 def main():
     # 1. Train teacher model from scratch
-    model = ViT(
+    model = SL_ViT(
         in_channels=IN_CHANNELS,
         d_model=D_MODEL,
         num_layers=NUM_LAYERS,
         num_heads=NUM_HEADS,
         num_classes=NUM_CLASSES,
         patch_size=PATCH_SIZE,
+        shift_ratio=int(0.5 * PATCH_SIZE),
         image_size=IMAGE_SIZE,
         mlp_dim=MLP_DIM,
         dropout_rate=DROPOUT_RATE,
@@ -51,7 +53,7 @@ def main():
     infosummary(model, (1, 3, IMAGE_SIZE, IMAGE_SIZE), col_names=["input_size", "output_size", "num_params", "params_percent", "trainable"])
 
     # Configs loaded from config.py
-    train_test_model(model, checkpoint_path=f'checkpoints/vit_D-{D_MODEL}_H-{NUM_HEADS}_L-{NUM_LAYERS}_I{IMAGE_SIZE}P{PATCH_SIZE}_MLP-{MLP_DIM}.pt')
+    train_test_model(model, checkpoint_path=f'checkpoints/{model.__class__.__name__}_D-{D_MODEL}_H-{NUM_HEADS}_L-{NUM_LAYERS}_I{IMAGE_SIZE}P{PATCH_SIZE}_MLP-{MLP_DIM}.pt')
 
 
 

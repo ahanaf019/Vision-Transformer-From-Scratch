@@ -11,8 +11,8 @@ class TransformerEncoder(nn.Module):
             d_model, 
             num_heads, 
             mlp_dim,
-            dropout_rate
-            
+            dropout_rate,
+            attention_type='attention'
             ):
         super().__init__()
         self.d_model = d_model
@@ -21,7 +21,7 @@ class TransformerEncoder(nn.Module):
         self.dropout_rate = dropout_rate
 
         self.ln1 = nn.LayerNorm(d_model)
-        self.mha = MultiHeadAttention(d_model, num_heads=num_heads)
+        self.mha = MultiHeadAttention(d_model, num_heads=num_heads, attention_type=attention_type)
         self.dropout1 = nn.Dropout(dropout_rate)
         self.ln2 = nn.LayerNorm(d_model)
         self.mlp = nn.Sequential(
