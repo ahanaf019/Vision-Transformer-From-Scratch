@@ -17,8 +17,8 @@ class Attention(nn.Module):
     
     def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor):
         Q = self.query(q)
-        K = self.query(k)
-        V = self.query(v)
+        K = self.key(k)
+        V = self.value(v)
         
         x = torch.matmul(Q, torch.transpose(K, dim0=1, dim1=2))
         x = x / (self.k_dim ** 0.5)

@@ -11,7 +11,7 @@ class PositionalEmbedding(nn.Module):
         self.sequence_len = sequence_len
 
         self.embed = nn.Parameter(
-            torch.zeros(size=[1, d_model])
+            torch.zeros(size=[sequence_len, d_model])
         )
         nn.init.trunc_normal_(self.embed, std=0.02)
 

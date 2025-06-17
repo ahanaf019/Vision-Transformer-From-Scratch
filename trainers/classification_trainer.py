@@ -29,10 +29,14 @@ class ClassifcationTrainer:
             metric.to(device)
         self.scaler = torch.amp.GradScaler(device=device)
 
-    def fit(self, num_epochs, train_db: ClassificationDataset, val_db: ClassificationDataset, batch_size, early_stop_patience=30, checkpoint_path=f'checkpoints/model.pt'):
+    def fit(self, num_epochs, train_db: ClassificationDataset, val_db: ClassificationDataset, batch_size, num_warmup=10, early_stop_patience=30, checkpoint_path=f'checkpoints/model.pt'):
         train_loader = DataLoader(train_db, batch_size=batch_size, shuffle=True, num_workers=os.cpu_count())
         val_loader = DataLoader(val_db, batch_size=batch_size, shuffle=False, num_workers=2)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=num_epochs)
+        
+        warmup_scheduler = torch.optim.lr_scheduler.LinearLR(self.optim, start_factor=0.01, end_factor=1.0, total_iters=num_warmup)
+        cosine_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=num_epochs - num_warmup, eta_min=0)
+        # Combine both schedulers sequentially
+        scheduler = torch.optim.lr_scheduler.SequentialLR(self.optim, schedulers=[warmup_scheduler, cosine_scheduler], milestones=[num_warmup])
         train_losses = []
         val_losses = [np.inf]
 
@@ -69,13 +73,13 @@ class ClassifcationTrainer:
             labels = labels.to(self.device)
             self.optim.zero_grad()
             
-            with torch.autocast(self.device):
+            with torch.autocast(self.device, dtype=torch.float16):
                 outputs = self.model(images)
                 loss = self.loss_fn(outputs, labels)
             losses.append(loss.item())
             self.scaler.scale(loss).backward()
-            self.scaler.unscale_(self.optim)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+            # self.scaler.unscale_(self.optim)
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             self.scaler.step(self.optim)
             self.scaler.update()
 
