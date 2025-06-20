@@ -17,6 +17,7 @@ class SL_ViT(nn.Module):
             num_heads,
             mlp_dim,
             dropout_rate, 
+            stochastic_path_rate,
             image_size,
             patch_size,
             shift_ratio,
@@ -56,6 +57,7 @@ class SL_ViT(nn.Module):
             num_heads=num_heads, 
             mlp_dim=mlp_dim, 
             dropout_rate=dropout_rate,
+            stochastic_path_rate=stochastic_path_rate,
             attention_type='locality_attention'
             ) for _ in range(num_layers)]
         self.encoder = nn.Sequential(*layers)

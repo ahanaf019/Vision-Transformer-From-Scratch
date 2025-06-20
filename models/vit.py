@@ -16,6 +16,7 @@ class ViT(nn.Module):
             num_heads,
             mlp_dim,
             dropout_rate, 
+            stochastic_path_rate,
             image_size,
             patch_size,
             num_classes):
@@ -27,6 +28,7 @@ class ViT(nn.Module):
         self.num_layers = num_layers
         self.num_heads = num_heads
         self.dropout_rate = dropout_rate
+        self.stochastic_path_rate = stochastic_path_rate
         self.mlp_dim = mlp_dim
         self.num_classes = num_classes
         
@@ -47,12 +49,14 @@ class ViT(nn.Module):
             sequence_len=sequence_len + 1
         )
 
+        steps = torch.linspace(0, stochastic_path_rate, num_layers)
         layers = [TransformerEncoder(
             d_model=d_model, 
             num_heads=num_heads, 
             mlp_dim=mlp_dim, 
-            dropout_rate=dropout_rate
-            ) for _ in range(num_layers)]
+            dropout_rate=dropout_rate,
+            stochastic_path_rate=steps[i],
+            ) for i in range(num_layers)]
         self.encoder = nn.Sequential(*layers)
 
         self.classifier = nn.Linear(d_model, num_classes)

@@ -18,6 +18,7 @@ from datasets import ClassificationDataset
 from trainers import ClassifcationTrainer
 from models.vit import ViT
 from models.sl_vit import SL_ViT
+from losses import SoftCrossEntropyLoss
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -42,17 +43,18 @@ _transforms = transforms.Compose([
 
 
 def main():
-    model = SL_ViT(
+    model = ViT(
         in_channels=IN_CHANNELS,
         d_model=D_MODEL,
         num_layers=NUM_LAYERS,
         num_heads=NUM_HEADS,
         num_classes=NUM_CLASSES,
         patch_size=PATCH_SIZE,
-        shift_ratio=int(0.5 * PATCH_SIZE),
+        # shift_ratio=int(0.5 * PATCH_SIZE),
         image_size=IMAGE_SIZE,
         mlp_dim=MLP_DIM,
         dropout_rate=DROPOUT_RATE,
+        stochastic_path_rate=DROPPATH_RATE
     ).to(device)
     infosummary(model, (1, 3, IMAGE_SIZE, IMAGE_SIZE), col_names=["input_size", "output_size", "num_params", "params_percent", "trainable"])
 
@@ -70,10 +72,10 @@ def train_test_model(model: nn.Module, checkpoint_path: str):
 
     
     optim = torch.optim.AdamW(model.parameters(), lr=INIT_LEARNING_RATE, weight_decay=1e-2)
-    loss_fn = nn.CrossEntropyLoss(label_smoothing=0.1)
+    loss_fn = SoftCrossEntropyLoss(label_smoothing=0.1)
 
     trainer = ClassifcationTrainer(model, optim, loss_fn, NUM_CLASSES, device=device)
-    trainer.fit(NUM_EPOCHS, train_db, val_db, BATCH_SIZE, checkpoint_path=checkpoint_path)
+    trainer.fit(NUM_EPOCHS, train_db, val_db, BATCH_SIZE, checkpoint_path=checkpoint_path, early_stop_patience=NUM_EPOCHS)
 
     print('*'*30)
     print('Testing')

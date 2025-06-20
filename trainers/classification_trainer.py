@@ -10,6 +10,8 @@ from torchmetrics import ConfusionMatrix
 
 from utils.utils import save_state, load_state
 from datasets import ClassificationDataset
+from augments.cutmix import CutMix
+from augments.mixup import MixUp
 
 class ClassifcationTrainer:
     def __init__(self, model: nn.Module, optim: torch.optim, loss_fn: nn.Module, num_classes:int, device:str='cpu'):
@@ -18,6 +20,8 @@ class ClassifcationTrainer:
         self.loss_fn = loss_fn
         self.device = device
         self.num_classes = num_classes
+        self.cutmix = CutMix(alpha=1, cutmix_rate=1.0)
+        self.mixup = MixUp(alpha=8, mixup_rate=0.8)
 
         self.conf = ConfusionMatrix(task='multiclass',num_classes=num_classes).to(device)
         self.metrics = [
@@ -37,6 +41,7 @@ class ClassifcationTrainer:
         cosine_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=num_epochs - num_warmup, eta_min=0)
         # Combine both schedulers sequentially
         scheduler = torch.optim.lr_scheduler.SequentialLR(self.optim, schedulers=[warmup_scheduler, cosine_scheduler], milestones=[num_warmup])
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optim, T_max=num_epochs, eta_min=0)
         train_losses = []
         val_losses = [np.inf]
 
@@ -52,7 +57,15 @@ class ClassifcationTrainer:
             es_counter += 1
             if val_loss < min(val_losses):
                 print(f'val_loss improved from {np.min(val_losses):0.4f} to {val_loss:0.4f}')
-                save_state(checkpoint_path, self.model, self.optim)
+                save_state(
+                    checkpoint_path, 
+                    self.model, 
+                    self.optim,
+                    info={
+                        'epoch': epoch,
+                        'val_loss': val_loss,
+                        'improvement_after_epochs': es_counter
+                })
                 es_counter = 0
             if es_counter >= early_stop_patience:
                 print('Early Stopping')
@@ -69,6 +82,10 @@ class ClassifcationTrainer:
         losses = []
 
         for images, labels in tqdm(loader):
+            labels = F.one_hot(labels, num_classes=self.num_classes)
+            images, labels = self.cutmix.generate(images, labels)
+            images, labels = self.mixup.generate(images, labels)
+
             images = images.to(self.device)
             labels = labels.to(self.device)
             self.optim.zero_grad()
@@ -78,8 +95,8 @@ class ClassifcationTrainer:
                 loss = self.loss_fn(outputs, labels)
             losses.append(loss.item())
             self.scaler.scale(loss).backward()
-            # self.scaler.unscale_(self.optim)
-            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+            self.scaler.unscale_(self.optim)
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             self.scaler.step(self.optim)
             self.scaler.update()
 

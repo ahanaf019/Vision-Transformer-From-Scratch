@@ -95,6 +95,7 @@ def load_state(path: str, model: nn.Module=None, optim: torch.optim.Optimizer=No
         optim.load_state_dict(obj['optim_state'])
         print('Optimizer State Loaded')
     print(f'Loaded state.')
+    print(obj['info'])
     return model, optim
 
 

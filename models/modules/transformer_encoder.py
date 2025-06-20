@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
 from torchinfo import summary
 
 from models.modules.multihead_attention import MultiHeadAttention
@@ -12,6 +13,7 @@ class TransformerEncoder(nn.Module):
             num_heads, 
             mlp_dim,
             dropout_rate,
+            stochastic_path_rate,
             attention_type='attention'
             ):
         super().__init__()
@@ -28,17 +30,19 @@ class TransformerEncoder(nn.Module):
             nn.Linear(d_model, mlp_dim),
             nn.GELU(),
             nn.Linear(mlp_dim, d_model),
-            nn.GELU()
+            # nn.GELU()
         )
         self.dropout2 = nn.Dropout(dropout_rate)
+        self.sd1 = torchvision.ops.StochasticDepth(p=stochastic_path_rate, mode='row')
+        self.sd2 = torchvision.ops.StochasticDepth(p=stochastic_path_rate, mode='row')
     
 
     def forward(self, x: torch.Tensor):
         x_norm = self.ln1(x)
         atten_out = self.dropout1(self.mha(x_norm))
-        x = x + atten_out
-        mlp_out = self.dropout2(self.mlp(x))
-        return x + mlp_out
+        x = self.sd1(x + atten_out)
+        mlp_out = self.dropout2(self.mlp(self.ln2(x)))
+        return self.sd2(x + mlp_out)
 
 
 if __name__ == '__main__':
