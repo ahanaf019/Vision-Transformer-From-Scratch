@@ -40,9 +40,10 @@ class TransformerEncoder(nn.Module):
     def forward(self, x: torch.Tensor):
         x_norm = self.ln1(x)
         atten_out = self.dropout1(self.mha(x_norm))
-        x = self.sd1(x + atten_out)
+        x = x + self.sd1(atten_out)
         mlp_out = self.dropout2(self.mlp(self.ln2(x)))
-        return self.sd2(x + mlp_out)
+        x = x + self.sd2(mlp_out)
+        return x
 
 
 if __name__ == '__main__':

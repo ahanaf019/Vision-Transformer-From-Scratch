@@ -52,14 +52,15 @@ class SL_ViT(nn.Module):
             sequence_len=sequence_len + 1
         )
 
+        steps = torch.linspace(0, stochastic_path_rate, num_layers)
         layers = [TransformerEncoder(
             d_model=d_model, 
             num_heads=num_heads, 
             mlp_dim=mlp_dim, 
             dropout_rate=dropout_rate,
-            stochastic_path_rate=stochastic_path_rate,
+            stochastic_path_rate=steps[i],
             attention_type='locality_attention'
-            ) for _ in range(num_layers)]
+            ) for i in range(num_layers)]
         self.encoder = nn.Sequential(*layers)
 
         self.classifier = nn.Linear(d_model, num_classes)

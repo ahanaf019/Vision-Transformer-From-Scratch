@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from torchmetrics.classification import MulticlassAccuracy, MulticlassAUROC, MulticlassF1Score
 from torchmetrics import ConfusionMatrix
+from torch.utils.tensorboard import SummaryWriter
 
 from utils.utils import save_state, load_state
 from datasets import ClassificationDataset
@@ -33,7 +34,9 @@ class ClassifcationTrainer:
             metric.to(device)
         self.scaler = torch.amp.GradScaler(device=device)
 
+
     def fit(self, num_epochs, train_db: ClassificationDataset, val_db: ClassificationDataset, batch_size, num_warmup=10, early_stop_patience=30, checkpoint_path=f'checkpoints/model.pt'):
+        writer = SummaryWriter(log_dir=f"tensorboard/{self.model.__class__.__name__}/experiment")
         train_loader = DataLoader(train_db, batch_size=batch_size, shuffle=True, num_workers=os.cpu_count())
         val_loader = DataLoader(val_db, batch_size=batch_size, shuffle=False, num_workers=2)
         
@@ -50,9 +53,12 @@ class ClassifcationTrainer:
         for epoch in range(num_epochs):
             print(f'Epoch {epoch+1}/{num_epochs}')
             train_loss = self.train_epoch(train_loader)
+            writer.add_scalar("Loss/train", train_loss, epoch)
             val_loss = self.evaluate(val_loader, use_progress_bar=False)
+            writer.add_scalar("Loss/val", val_loss, epoch)
             scheduler.step()
             print(f'Learning Rate: {scheduler.get_last_lr()[-1]:0.4e}')
+            writer.add_scalar("LearningRate", scheduler.get_last_lr()[-1], epoch)
             
             es_counter += 1
             if val_loss < min(val_losses):
